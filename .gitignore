@@ -74,3 +74,7 @@ ipython_config.py
 # OS files
 .DS_Store
 Thumbs.db
+
+# Eval output artifacts
+results.json
+*.results.json
