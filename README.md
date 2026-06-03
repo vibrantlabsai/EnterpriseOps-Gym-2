@@ -171,6 +171,39 @@ print(result.reward)
 `examples/run_eval.py` runs one task end to end (override models via `AGENT_MODEL` / `USER_MODEL`
 / `JUDGE_MODEL`).
 
+## Gym interface (RL / training)
+
+A **Gymnasium-compatible** wrapper (`eops_gym.gym`) exposes the eval as a standard `reset`/`step`
+RL loop — the learner policy plays the **agent** against the user simulator, and reward is the
+(sparse, terminal) evaluator score. Mirrors tau2's gym design. Requires the optional extra:
+
+```bash
+uv pip install -e ".[gym]"
+```
+
+```python
+import gymnasium as gym
+from eops_gym.gym import register_gym_agent, EOPS_ENV_ID
+
+register_gym_agent()
+env = gym.make(EOPS_ENV_ID, domain="itsm", task_id="itsm_register_ci_and_incident_001")
+
+obs, info = env.reset()      # obs: conversation string; info: {task_id, tools, policy}
+obs, reward, terminated, truncated, info = env.step(
+    'register_configuration_item(name="...", owner_id="USER_004", serial_number="...", status="in_use", cost=78000)')
+# ...take more actions...
+obs, reward, terminated, truncated, info = env.step("done()")   # ends the episode
+```
+
+- **action** (string): a natural-language message, a tool call (functional `name(arg='x')` or
+  JSON `{"name":..,"arguments":..}`), or `done()` to end the episode.
+- **observation** (string): the conversation so far (`role: content` lines).
+- **reward**: **sparse / terminal** — `0.0` on every step, then the task's verifier score (0/1)
+  on the terminal step. Suited to outcome-reward RL (GRPO / REINFORCE / rejection sampling).
+- The **user simulator runs automatically** (needs a `user_llm`); the policy only acts as the
+  agent. Under the hood the real `Orchestrator` runs in a background thread and the agent blocks
+  for each `step(action)` (faithful to tau2). Reward skips the NL judge for speed/determinism.
+
 ## How a task is defined
 
 Tasks live in `data/itsm/tasks.json`. Each task specifies:
@@ -226,6 +259,7 @@ EnterpriseOps-Gym-2/
 │   │   ├── evaluator_nl.py           # NL-assertion LLM judge
 │   │   └── evaluator_verifier.py     # original SQL verifiers (DB → in-memory SQLite)
 │   ├── utils/                        # clock (deterministic), hashing, io, litellm wrapper
+│   ├── gym/gym_agent.py              # Gymnasium reset/step RL interface (optional [gym] extra)
 │   └── domains/itsm/
 │       ├── data_model.py             # 24 pydantic tables + ItsmDB
 │       ├── environment.py            # get_environment(seed, acting_user) + get_tasks()
@@ -270,6 +304,8 @@ EnterpriseOps-Gym-2/
   - `test_framework.py` — tool-schema generation, clock, delta (+ error paths), DB hashing,
     message↔litellm conversion, evaluator reward combination.
   - `test_agent_user_mock.py` — `LLMAgent`/`UserSimulator` + litellm parsing with a mocked LLM.
+  - `test_gym.py` — Gymnasium `reset`/`step` contract, action parsing, and a full mocked episode
+    (skipped if `gymnasium` is not installed).
 - **Differential conformance** tests (`test_itsm_<category>_conformance.py`,
   `test_itsm_integrated_conformance.py`) compare every tool against the **live MCP oracle** and
   are **skipped automatically** if the oracle is not running. To run them, start the original MCP

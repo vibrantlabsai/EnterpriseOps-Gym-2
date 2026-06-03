@@ -13,6 +13,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest>=8", "pytest-mock"]
 hf = ["datasets>=2.0"]
+gym = ["gymnasium>=0.29"]  # Gymnasium-compatible RL/training interface (eops_gym.gym)
 
 [project.scripts]
 eops = "eops_gym.cli:main"

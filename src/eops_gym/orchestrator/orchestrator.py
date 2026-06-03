@@ -10,10 +10,17 @@ from typing import Protocol
 
 from eops_gym.data_model.message import AssistantMessage, Message, ToolCall
 from eops_gym.environment.environment import Environment
+from eops_gym.user.base import STOP
 from eops_gym.user.user_simulator import UserSimulator
 
 #: Fixed greeting the agent opens every conversation with (no LLM call), tau2-style.
 DEFAULT_FIRST_AGENT_MESSAGE = "Hi! How can I help you today?"
+
+
+def _is_agent_stop(message: Message) -> bool:
+    """The agent can end the episode by emitting the STOP token (e.g. the gym `done()` action)."""
+    content = getattr(message, "content", None)
+    return bool(content and STOP in content)
 
 
 class Agent(Protocol):
@@ -77,5 +84,10 @@ class Orchestrator:
                 agent_msg, agent_state = self.agent.generate_next_message(trajectory[-1], agent_state)
                 trajectory.append(agent_msg)
             last_agent_msg = agent_msg
+
+            # The agent may end the conversation itself (e.g. the gym policy calls done()).
+            if _is_agent_stop(agent_msg):
+                stopped = True
+                break
 
         return RunResult(trajectory=trajectory, agent_tool_calls=agent_tool_calls, stopped=stopped)

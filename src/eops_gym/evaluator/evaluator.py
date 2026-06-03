@@ -40,6 +40,7 @@ def evaluate_task(
     nl_llm: Optional[str] = None,
     nl_llm_args: Optional[dict] = None,
     reward_mode: str = "verifier",
+    skip_nl_assertions: bool = False,
 ) -> RewardInfo:
     """Score a completed run against the task's evaluation criteria.
 
@@ -61,9 +62,10 @@ def evaluate_task(
         pred_env = _predicted_env(environment_constructor, task, final_env, agent_tool_calls)
         verifier_check = run_verifiers(pred_env.tools.db, criteria.verifiers)
 
-    # NL-assertion judge (informational under verifier mode; gating under db_hash mode)
+    # NL-assertion judge (informational under verifier mode; gating under db_hash mode).
+    # Skipped for RL/gym reward, where the judge LLM is unnecessary overhead/non-determinism.
     nl_check: Optional[NLCheck] = None
-    if criteria.nl_assertions:
+    if criteria.nl_assertions and not skip_nl_assertions:
         nl_check = evaluate_nl_assertions(
             trajectory, criteria.nl_assertions, llm=nl_llm, llm_args=nl_llm_args
         )
