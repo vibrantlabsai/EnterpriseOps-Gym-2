@@ -1,4 +1,4 @@
-"""Minimal litellm wrapper. Trimmed mirror of tau2's ``utils/llm_utils.py``.
+"""Minimal litellm wrapper.
 
 No caching / langfuse / fine-tune parsing — just turn our message objects into
 a litellm ``completion`` call and return an ``AssistantMessage``.

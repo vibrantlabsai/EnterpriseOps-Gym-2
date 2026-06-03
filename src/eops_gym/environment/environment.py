@@ -1,7 +1,6 @@
 """Environment — wraps a domain toolkit/DB and dispatches tool calls.
 
-Trimmed mirror of tau2's ``environment/environment.py``: no user-side DB, no
-solo mode, no env assertions. Just enough to run tool calls during a task and
+Trimmed: no user-side DB, no solo mode, no env assertions. Just enough to run tool calls during a task and
 to be reconstructed as the "gold" environment during evaluation.
 """
 

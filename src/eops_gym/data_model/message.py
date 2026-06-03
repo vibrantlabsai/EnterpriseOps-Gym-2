@@ -1,4 +1,4 @@
-"""Conversation message types. Trimmed mirror of tau2's ``data_model/message.py``."""
+"""Conversation message types."""
 
 import json
 from typing import Literal, Optional

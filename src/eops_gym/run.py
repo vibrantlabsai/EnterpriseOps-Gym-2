@@ -1,10 +1,10 @@
 """Run evals: tie agent <-> user simulator <-> environment <-> evaluator.
 
-A small, registry-backed runner in the spirit of tau2's ``run.py``. Only the
-``itsm`` domain is wired today; add an entry to ``DOMAINS`` to register more.
+A small, registry-backed runner. Only the ``itsm`` domain is wired today; add
+an entry to ``DOMAINS`` to register more.
 
 Supports **k trials per task** (``run_domain(..., k=...)``) with optional seeding, and reports
-both the mean reward and the tau2-style ``pass^k`` reliability curve. ``save_run_dir`` writes a
+both the mean reward and the ``pass^k`` reliability curve. ``save_run_dir`` writes a
 structured run directory (compact ``summary.json`` + per task/trial trajectory files).
 """
 
@@ -62,7 +62,7 @@ def get_domain(name: str) -> DomainSpec:
 def _pass_hat_k(n: int, c: int, k: int) -> float:
     """Unbiased estimate that a random size-k subset of n trials (c passing) all pass.
 
-    The HumanEval / tau2 ``pass^k`` estimator: ``C(c, k) / C(n, k)``.
+    The HumanEval ``pass^k`` estimator: ``C(c, k) / C(n, k)``.
     """
     if k > n or math.comb(n, k) == 0:
         return 0.0

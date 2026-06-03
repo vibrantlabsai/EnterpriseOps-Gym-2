@@ -1,4 +1,4 @@
-"""ITSM environment + task loader factory. Mirrors tau2 domain ``environment.py``."""
+"""ITSM environment + task loader factory."""
 
 from pathlib import Path
 from typing import Optional

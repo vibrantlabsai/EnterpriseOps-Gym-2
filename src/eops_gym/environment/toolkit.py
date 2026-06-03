@@ -1,4 +1,4 @@
-"""Toolkit base. Trimmed mirror of tau2's ``environment/toolkit.py``.
+"""Toolkit base.
 
 A ToolKit owns a domain ``DB`` and exposes methods decorated with ``@is_tool``.
 Read tools query the DB; write tools mutate ``self.db`` in place. The evaluator

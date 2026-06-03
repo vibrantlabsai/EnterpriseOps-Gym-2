@@ -1,10 +1,10 @@
 ## EnterpriseOps Gym 2
 
-EnterpriseOps Gym 2 is a **tau2-bench-style** benchmark for evaluating LLM agents on stateful,
-multi-step enterprise-operations workflows. It is a faithful port of ServiceNow's
-[EnterpriseOps-Gym](https://github.com/ServiceNow/EnterpriseOps-Gym) into the tau2 architecture:
-an agent talks to a simulated user, operates on an in-memory domain database through typed tools,
-and is scored against gold criteria.
+EnterpriseOps Gym 2 is a benchmark for evaluating LLM agents on stateful, multi-step
+enterprise-operations workflows. It is a port of ServiceNow's
+[EnterpriseOps-Gym](https://github.com/ServiceNow/EnterpriseOps-Gym) into an in-process
+architecture: an agent talks to a simulated user, operates on an in-memory domain database
+through typed tools, and is scored against gold criteria.
 
 Each domain specifies:
 
@@ -137,7 +137,7 @@ print(result.reward)
 
 A **Gymnasium-compatible** wrapper (`eops_gym.gym`) exposes the eval as a standard `reset`/`step`
 RL loop — the learner policy plays the **agent** against the user simulator, and reward is the
-(sparse, terminal) evaluator score. Mirrors tau2's gym design. Requires the optional extra:
+(sparse, terminal) evaluator score. Requires the optional extra:
 
 ```bash
 uv pip install -e ".[gym]"
@@ -164,7 +164,7 @@ obs, reward, terminated, truncated, info = env.step("done()")   # ends the episo
   score (0/1) on the terminal step. Suited to outcome-reward RL (GRPO / REINFORCE / rejection sampling).
 - The **user simulator runs automatically** (needs a `user_llm`); the policy only acts as the
   agent. Under the hood the real `Orchestrator` runs in a background thread and the agent blocks
-  for each `step(action)` (faithful to tau2). Reward skips the NL judge for speed/determinism.
+  for each `step(action)`. Reward skips the NL judge for speed/determinism.
 
 ## How a task is defined
 

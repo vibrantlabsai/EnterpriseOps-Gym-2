@@ -1,6 +1,6 @@
 """Task and evaluation-criteria models (items 6 + 7).
 
-Mirrors tau2's ``data_model/tasks.py`` but trimmed to what items 4-7 need:
+Trimmed to what items 4-7 need:
 a user scenario (persona + task description), evaluation criteria (gold actions
 + NL assertions), and a per-task initial-state ``Delta`` (item 7).
 """

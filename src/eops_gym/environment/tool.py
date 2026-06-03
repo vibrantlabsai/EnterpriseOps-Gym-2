@@ -3,7 +3,7 @@
 The scaffold previously emitted ``{"type": "string"}`` for every parameter. Real tool-calling
 needs accurate types, enums, and required-field info so the agent fills arguments correctly.
 This module derives an OpenAI ``function`` schema from a bound tool method's type hints and a
-Google-style docstring (``Args:`` block), mirroring tau2's docstring-driven ``Tool`` schema.
+Google-style docstring (``Args:`` block).
 
 Supported annotations: str, int, float, bool, Optional[X], list[X]/List[X], Literal[...],
 and (best-effort) nested fall back to string.

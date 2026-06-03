@@ -1,6 +1,6 @@
 """EnterpriseOps Gym command-line interface.
 
-Trimmed, tau2-style CLI:
+Command-line interface:
 
     eops run    --domain itsm [--task-ids ...] [--agent-llm ...] [--user-llm ...]
     eops tasks  --domain itsm

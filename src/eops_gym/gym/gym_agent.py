@@ -1,11 +1,10 @@
 """Gymnasium-compatible RL/training interface for EnterpriseOps Gym.
 
-A faithful port of tau2-bench's gym (``src/tau2/gym/gym_agent.py``): a thin wrapper over the
-existing eval stack that exposes the standard Gymnasium ``reset``/``step`` loop. The learner
+A thin wrapper over the existing eval stack that exposes the standard Gymnasium ``reset``/``step`` loop. The learner
 policy plays the **agent**; a ``UserSimulator`` plays the user; reward is the (sparse, terminal)
 evaluator score.
 
-Mechanism (as in tau2): the real ``Orchestrator`` runs in a background daemon thread. A
+Mechanism: the real ``Orchestrator`` runs in a background daemon thread. A
 controllable ``GymAgent`` is plugged in as the agent — when the orchestrator asks it to act, it
 *blocks* until the env's ``step(action)`` supplies the next action (via a threading Event). So
 ``reset()`` advances the thread to the first agent turn, and each ``step()`` injects one action
@@ -54,7 +53,7 @@ DONE_TOOL_SCHEMA = {
 
 
 class TauSpace(gym.spaces.Space):
-    """Degenerate string space (matches tau2): actions/observations are plain strings."""
+    """Degenerate string space: actions/observations are plain strings."""
 
     def sample(self, *args, **kwargs) -> str:
         raise NotImplementedError("Sampling is not supported for the eops gym (string space).")

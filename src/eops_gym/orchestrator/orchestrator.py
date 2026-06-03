@@ -1,6 +1,6 @@
 """Minimal run loop: agent <-> user simulator <-> environment.
 
-Trimmed mirror of tau2's orchestrator. Enough to drive one task end-to-end and
+Enough to drive one task end-to-end and
 produce a trajectory (plus the agent's tool calls) for the evaluator. The agent
 is any object exposing ``generate_next_message(message, state) -> (AssistantMessage, state)``
 and ``get_init_state()`` — a real litellm agent is item 1's concern.
@@ -13,7 +13,7 @@ from eops_gym.environment.environment import Environment
 from eops_gym.user.base import STOP
 from eops_gym.user.user_simulator import UserSimulator
 
-#: Fixed greeting the agent opens every conversation with (no LLM call), tau2-style.
+#: Fixed greeting the agent opens every conversation with (no LLM call).
 DEFAULT_FIRST_AGENT_MESSAGE = "Hi! How can I help you today?"
 
 
@@ -55,7 +55,7 @@ class Orchestrator:
         agent_state = self.agent.get_init_state()
         user_state = self.user.get_init_state()
 
-        # The agent opens with a fixed greeting (no LLM call), mirroring tau2. This guarantees
+        # The agent opens with a fixed greeting (no LLM call). This guarantees
         # the user simulator always has a non-system message to respond to — required by
         # providers like Anthropic, which reject a system-only message list.
         last_agent_msg: Message = AssistantMessage(content=DEFAULT_FIRST_AGENT_MESSAGE)

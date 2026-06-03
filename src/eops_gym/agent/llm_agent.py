@@ -1,7 +1,7 @@
 """litellm tool-calling agent.
 
-A faithful port of tau2's ``agent/llm_agent.py`` (the ``LLMAgent`` class), adapted to eops's
-in-process conventions: tools are passed as OpenAI schema dicts, and the litellm call goes
+The ``LLMAgent`` class, using eops's in-process conventions: tools are passed as OpenAI schema
+dicts, and the litellm call goes
 through ``utils.llm_utils.generate``. It follows the domain policy, makes tool calls, threads
 the full conversation each turn, and produces a closing summary.
 """
@@ -22,7 +22,7 @@ from eops_gym.data_model.message import (
 )
 from eops_gym.utils.llm_utils import generate
 
-#: Merges tau2's instruction/policy structure (one-action-per-turn, valid JSON) with eops's
+#: Combines an instruction/policy structure (one-action-per-turn, valid JSON) with eops's
 #: domain-specific hints (use ids not display names, close with a summary).
 AGENT_INSTRUCTION = """
 You are an enterprise-operations support agent. Help the user according to the <policy> below,

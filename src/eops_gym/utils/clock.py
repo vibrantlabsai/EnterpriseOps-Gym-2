@@ -4,8 +4,6 @@ Gold-action DB-hash matching requires created/updated timestamps to be reproduci
 replay and the agent run must stamp identical times. Tools therefore read the current time via
 ``get_now()`` (never ``datetime.now()`` directly). The environment sets a fixed per-task time;
 by default it is a stable constant so behaviour is deterministic even outside a task run.
-
-Mirrors tau2's controllable-clock pattern.
 """
 
 from __future__ import annotations

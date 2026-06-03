@@ -1,7 +1,7 @@
 """NL-assertion evaluation (item 5b).
 
 An LLM judge grades each natural-language assertion against the conversation
-trajectory. Mirrors tau2's ``evaluator_nl_assertions.py``.
+trajectory.
 """
 
 import json

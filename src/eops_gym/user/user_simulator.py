@@ -1,7 +1,7 @@
 """User simulator (item 4).
 
 A stateless LLM that role-plays a human user from a (persona, task_description)
-scenario. Mirrors tau2's ``user/user_simulator.py``.
+scenario.
 """
 
 from typing import Optional
