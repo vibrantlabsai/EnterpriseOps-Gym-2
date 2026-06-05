@@ -1,20 +1,6 @@
 """Group tools (7) — faithful port of the ITSM MCP's groups category.
 
 Covers user-group CRUD/search and group-membership management.
-
-Behaviour confirmed against the original ServiceNow MCP:
-- ``add_new_user_group``: ``manager_id`` is required and the user must have the ``manager``
-  role; group ``name`` is globally unique (across all orgs); the new group's ``org_id`` is the
-  acting user's org. ``active`` defaults to True; ``email``/``description`` default to NULL.
-- ``add_new_group_member``: validates group then user, rejects duplicate (group, user)
-  memberships; the new membership's ``org_id`` is taken from the *group's* org (not the user or
-  the caller).
-- ``remove_group_membership``: validates group, then user, then (if given) that ``member_id``
-  names the membership row for that exact (group, user); deletes the matching row.
-- ``update_user_group``: only name/type/active are mutable; raises if no field is provided, if
-  every provided field already matches (idempotency), or if a new name collides.
-- list reads return ``{"<collection>": [...], "total_count": N}`` ordered by ``created_on``
-  descending; date filters are a lexicographic ``created_on`` string comparison.
 """
 
 from __future__ import annotations

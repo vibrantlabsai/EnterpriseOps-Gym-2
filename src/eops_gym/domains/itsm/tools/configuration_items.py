@@ -1,18 +1,6 @@
 """Configuration item tools (4) — faithful port of the ITSM MCP's CI category.
 
 Covers CI registration/update plus serial-number and filtered lookups.
-
-Behaviour confirmed empirically against the original ServiceNow MCP:
-- ``register_configuration_item`` generates ``CI_<seq:03d>``, inherits ``org_id`` from the acting
-  user, leaves no ``*_display`` fields, and validates in this order: owner exists -> name unique
-  -> serial unique -> location exists.
-- ``update_configuration_item`` requires at least one mutable field, validates owner -> serial
-  uniqueness -> location, and raises a "no changes detected" error when every supplied *checked*
-  field (name, serial_number, owner_id, location_id, cost) already equals its current value.
-  ``status`` is NOT part of the no-change check and is always applied when supplied. Name
-  uniqueness is NOT enforced on update.
-- ``find_configuration_items`` returns a dict ``{"configuration_items": [...], "total_count": N}``
-  ordered by configuration_item_id descending.
 """
 
 from __future__ import annotations

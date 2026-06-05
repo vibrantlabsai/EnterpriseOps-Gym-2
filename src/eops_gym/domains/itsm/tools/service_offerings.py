@@ -2,11 +2,8 @@
 
 Covers service-offering search/lookup, registration, and update.
 
-Note on naming: the catalog/tool-facing API uses ``parent`` for what the schema stores as the
-``business_service`` column, and ``short_description`` is a first-class column (the table's
-``description`` column is never set by these tools — only the seed bakes it). ``org_id`` is the
-acting (caller) user's org, not the owner's. ``used_for``/``status``/``service_classification``/
-``business_criticality`` default to ``production``/``operational``/``business``/``critical``.
+Note on naming: the tool-facing API uses ``parent`` for what the schema stores as the
+``business_service`` column.
 """
 
 from __future__ import annotations

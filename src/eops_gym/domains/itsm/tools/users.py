@@ -1,21 +1,8 @@
 """User tools (6) — faithful port of the ITSM MCP's users category.
 
 Covers user CRUD and the various user lookups (by id, email, name) plus filtered listing.
-
-Behaviour confirmed empirically against the original ServiceNow MCP:
-  * ``add_new_user`` generates ``user_id`` = ``USER_<seq:03d>``, ``user_name`` =
-    ``<first>.<last>`` lowercased (the ``user_name`` arg is IGNORED), ``static_token`` =
-    ``token_<urlsafe>`` (random — the only field that cannot reach byte parity), and inherits
-    ``org_id`` from the acting user. ``location_id`` defaults to NULL.
-  * Email uniqueness is scoped to the acting org; phone uniqueness is global.
-  * ``update_user_details`` only touches the fields it processes (email, first_name, last_name,
-    active, phone, role, location_id); ``user_name`` and ``company_id`` args are accepted but
-    NEVER stored. It rejects calls with no processable field (NO_FIELDS_PROVIDED) and calls
-    where every provided value already matches (NO_CHANGES_DETECTED). ``user_name`` is NOT
-    regenerated when first/last names change.
-  * ``list_users`` returns ``{"users": [...], "total_count": N}``. Filters: email/user_id/role
-    exact; first_name/last_name case-insensitive substring; phone exact (validated format);
-    active "true"/"false"; created_after strictly-greater, created_before less-or-equal.
+Note: ``add_new_user`` ignores the ``user_name`` arg (it derives ``<first>.<last>`` lowercased),
+and ``update_user_details`` accepts but never stores the ``user_name`` / ``company_id`` args.
 """
 
 from __future__ import annotations

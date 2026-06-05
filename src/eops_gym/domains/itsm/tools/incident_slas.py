@@ -2,17 +2,6 @@
 
 Covers incident-SLA CRUD/search plus the stage-wise breached count aggregate. The
 ``incident_sla`` table links an incident to an SLA definition and tracks its lifecycle stage.
-
-Behaviour confirmed empirically against the original ServiceNow MCP:
-- ``link_new_incident_sla`` generates ``TSLA_<seq>`` ids; ``stage`` defaults to ``in_progress``
-  and ``has_breached`` to ``False``; ``org_id`` is always the caller's org (never derived from
-  the linked incident/definition); FK existence of incident + sla_def is enforced (not org
-  scoped); a duplicate ``(org_id, incident_id, sla_def_id)`` is rejected.
-- ``update_incident_sla_details`` mutates only the supplied fields, never changes ``org_id``
-  (even when ``incident_id`` moves cross-org), and does NOT re-check the uniqueness constraint.
-- ``find_incident_slas`` / ``delete_incident_slas`` / the count aggregate operate across ALL
-  orgs (no caller-org scoping, despite the catalog wording).
-- ``stage`` is validated everywhere against the five valid values.
 """
 
 from __future__ import annotations

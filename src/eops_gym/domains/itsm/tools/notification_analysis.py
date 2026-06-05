@@ -2,18 +2,6 @@
 
 Pure read/aggregate tools over the ``notification`` table: count by incident / status / type,
 and the average notifications per incident.
-
-NOTE: the original server has two quirks faithfully reproduced here (confirmed against the
-original ServiceNow MCP):
-
-* ``count_notifications_by_status`` / ``count_notifications_by_type`` return ``{"metrics": {}}``
-  when no filter is supplied, and when a filter *is* supplied they echo each requested value
-  **upper-cased** with a count of ``0`` — the server groups stored (lower-case) values but
-  matches them against the upper-cased filter, so the counts never line up. We mirror this
-  exactly so the return matches the original MCP.
-* ``average_notifications_by_incident`` averages over the incidents that actually have at least
-  one notification (the divisor excludes zero-notification incidents); it returns ``0.0`` when
-  no in-scope incident has a notification, and rounds to two decimals.
 """
 
 from __future__ import annotations
