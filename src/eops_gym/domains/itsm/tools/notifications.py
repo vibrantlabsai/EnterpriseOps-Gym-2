@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from eops_gym.domains.itsm.data_model import Notification
+from eops_gym.domains.itsm.data_model import Notification, NotificationList
 from eops_gym.domains.itsm.tools._base import ItsmError, ItsmToolsBase
 from eops_gym.environment.toolkit import ToolType, is_tool
 
@@ -174,7 +174,7 @@ class NotificationToolsMixin(ItsmToolsBase):
         status: Optional[str] = None,
         created_before: Optional[str] = None,
         created_after: Optional[str] = None,
-    ) -> dict:
+    ) -> NotificationList:
         """Search notifications using various filters; all are optional and ANDed together.
 
         Empty-string or null values for any filter are ignored. Date filters compare against
@@ -212,10 +212,10 @@ class NotificationToolsMixin(ItsmToolsBase):
             if created_before and (notif.created_on or "") > created_before:
                 continue
             out.append(notif)
-        return {"notifications": out, "count": len(out)}
+        return NotificationList(notifications=out, count=len(out))
 
     @is_tool(ToolType.READ)
-    def find_notifications_for_email(self, email: str) -> dict:
+    def find_notifications_for_email(self, email: str) -> NotificationList:
         """Retrieve notifications sent to a specific email address.
 
         Args:
@@ -232,10 +232,10 @@ class NotificationToolsMixin(ItsmToolsBase):
                 code="RESOURCE_NOT_FOUND",
                 field=None,
             )
-        return {"notifications": out, "count": len(out)}
+        return NotificationList(notifications=out, count=len(out))
 
     @is_tool(ToolType.READ)
-    def find_notifications_sent_for_incident(self, incident_id: str) -> dict:
+    def find_notifications_sent_for_incident(self, incident_id: str) -> NotificationList:
         """Retrieve notifications related to a specific incident.
 
         Args:
@@ -252,4 +252,4 @@ class NotificationToolsMixin(ItsmToolsBase):
                 code="RESOURCE_NOT_FOUND",
                 field=None,
             )
-        return {"notifications": out, "count": len(out)}
+        return NotificationList(notifications=out, count=len(out))

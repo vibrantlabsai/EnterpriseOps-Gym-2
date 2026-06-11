@@ -9,7 +9,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import List, Optional
 
-from eops_gym.domains.itsm.data_model import IncidentAffectedCI
+from eops_gym.domains.itsm.data_model import IncidentAffectedCI, IncidentAffectedCIList
 from eops_gym.domains.itsm.tools._base import ItsmError, ItsmToolsBase
 from eops_gym.environment.toolkit import ToolType, is_tool
 
@@ -172,7 +172,7 @@ class IncidentAffectedCIToolsMixin(ItsmToolsBase):
         incident_id: Optional[str] = None,
         created_before: Optional[str] = None,
         created_after: Optional[str] = None,
-    ) -> dict:
+    ) -> IncidentAffectedCIList:
         """List configuration items linked to incidents. All filters optional (ANDed).
 
         Args:
@@ -194,7 +194,4 @@ class IncidentAffectedCIToolsMixin(ItsmToolsBase):
             )
         ]
         matches.sort(key=lambda m: (m.created_on or ""), reverse=True)
-        return {
-            "incident_affected_cis": matches,
-            "total_count": len(matches),
-        }
+        return IncidentAffectedCIList(incident_affected_cis=matches, total_count=len(matches))

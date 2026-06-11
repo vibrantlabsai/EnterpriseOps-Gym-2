@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from eops_gym.domains.itsm.data_model import IncidentSLA
+from eops_gym.domains.itsm.data_model import IncidentSLA, IncidentSLAList
 from eops_gym.domains.itsm.tools._base import ItsmError, ItsmToolsBase
 from eops_gym.environment.toolkit import ToolType, is_tool
 
@@ -210,7 +210,7 @@ class IncidentSLAToolsMixin(ItsmToolsBase):
         has_breached: Optional[bool] = None,
         created_before: Optional[str] = None,
         created_after: Optional[str] = None,
-    ) -> dict:
+    ) -> IncidentSLAList:
         """List incident SLA records, optionally filtered. All filters are ANDed.
 
         Results are not scoped to the caller's org and are ordered by created_on descending.
@@ -246,7 +246,7 @@ class IncidentSLAToolsMixin(ItsmToolsBase):
                 continue
             out.append(record)
         out.sort(key=lambda r: (r.created_on or ""), reverse=True)
-        return {"incident_slas": out, "total_count": len(out)}
+        return IncidentSLAList(incident_slas=out, total_count=len(out))
 
     @is_tool(ToolType.READ)
     def find_stage_wise_breached_incident_sla_counts(

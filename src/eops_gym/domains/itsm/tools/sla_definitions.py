@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from eops_gym.domains.itsm.data_model import SLADefinition
+from eops_gym.domains.itsm.data_model import SLADefinition, SLADefinitionList
 from eops_gym.domains.itsm.tools._base import ItsmError, ItsmToolsBase
 from eops_gym.environment.toolkit import ToolType, is_tool
 
@@ -171,7 +171,7 @@ class SLADefinitionToolsMixin(ItsmToolsBase):
         active: Optional[bool] = None,
         created_after: Optional[str] = None,
         created_before: Optional[str] = None,
-    ) -> dict:
+    ) -> SLADefinitionList:
         """List SLA definitions, applying optional filters. Returns all if no filters given.
 
         Empty strings and nulls are ignored (return all results without filtering). Booleans only
@@ -214,4 +214,4 @@ class SLADefinitionToolsMixin(ItsmToolsBase):
                 continue
             out.append(sla)
 
-        return {"sla_definitions": out, "total_count": len(out)}
+        return SLADefinitionList(sla_definitions=out, total_count=len(out))

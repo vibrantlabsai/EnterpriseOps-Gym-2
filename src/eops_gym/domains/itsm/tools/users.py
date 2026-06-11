@@ -11,7 +11,7 @@ import hashlib
 from datetime import datetime
 from typing import List, Optional
 
-from eops_gym.domains.itsm.data_model import User
+from eops_gym.domains.itsm.data_model import User, UserList
 from eops_gym.domains.itsm.tools._base import ItsmError, ItsmToolsBase
 from eops_gym.environment.toolkit import ToolType, is_tool
 
@@ -281,7 +281,7 @@ class UserToolsMixin(ItsmToolsBase):
         active: Optional[str] = None,
         created_after: Optional[str] = None,
         created_before: Optional[str] = None,
-    ) -> dict:
+    ) -> UserList:
         """List users, optionally filtered. Empty-string filters are ignored.
 
         Args:
@@ -329,4 +329,4 @@ class UserToolsMixin(ItsmToolsBase):
                 if created is None or not (created <= before_dt):
                     continue
             out.append(user)
-        return {"users": out, "total_count": len(out)}
+        return UserList(users=out, total_count=len(out))

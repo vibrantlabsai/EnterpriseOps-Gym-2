@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from eops_gym.domains.itsm.data_model import Knowledge
+from eops_gym.domains.itsm.data_model import Knowledge, KnowledgeList
 from eops_gym.domains.itsm.tools._base import ItsmError, ItsmToolsBase
 from eops_gym.environment.toolkit import ToolType, is_tool
 
@@ -138,7 +138,7 @@ class KnowledgeToolsMixin(ItsmToolsBase):
         owner_id: Optional[str] = None,
         created_after: Optional[str] = None,
         created_before: Optional[str] = None,
-    ) -> dict:
+    ) -> KnowledgeList:
         """List knowledge articles with optional filters (all ANDed). No filters returns all.
 
         Articles are returned across all organizations, sorted by creation time (newest first).
@@ -180,4 +180,4 @@ class KnowledgeToolsMixin(ItsmToolsBase):
             out.append(art)
 
         out.sort(key=lambda a: (a.created_on or ""), reverse=True)
-        return {"knowledges": out, "total_count": len(out)}
+        return KnowledgeList(knowledges=out, total_count=len(out))
