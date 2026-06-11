@@ -80,6 +80,13 @@ class ToolKitBase(metaclass=ToolKitType):
         names = self._tool_names if include is None else [n for n in self._tool_names if n in include]
         return [build_tool_schema(getattr(self, name), name=name) for name in names]
 
+    def get_tool_metadata(self, include: Optional[list[str]] = None) -> list[dict]:
+        """Per-tool metadata (read/write type + output schema) the OpenAI schema omits."""
+        from eops_gym.environment.tool import build_tool_metadata
+
+        names = self._tool_names if include is None else [n for n in self._tool_names if n in include]
+        return [build_tool_metadata(getattr(self, name), name=name) for name in names]
+
     def get_db_hash(self) -> str:
         if self.db is None:
             raise ValueError("Database has not been initialized.")

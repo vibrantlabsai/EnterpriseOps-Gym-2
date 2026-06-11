@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from eops_gym.domains.itsm.data_model import Service
+from eops_gym.domains.itsm.data_model import Service, ServiceList
 from eops_gym.domains.itsm.tools._base import ItsmError, ItsmToolsBase
 from eops_gym.environment.toolkit import ToolType, is_tool
 
@@ -213,7 +213,7 @@ class ServiceToolsMixin(ItsmToolsBase):
         business_criticality: Optional[str] = None,
         created_after: Optional[str] = None,
         created_before: Optional[str] = None,
-    ) -> dict:
+    ) -> ServiceList:
         """List services with optional filters. Returns all services or filtered results.
 
         All filters are ANDed; omitted filters are ignored. ``name`` is a case-insensitive
@@ -261,4 +261,4 @@ class ServiceToolsMixin(ItsmToolsBase):
             out.append(svc)
 
         out.sort(key=lambda s: s.service_id, reverse=True)
-        return {"services": out, "total_count": len(out)}
+        return ServiceList(services=out, total_count=len(out))

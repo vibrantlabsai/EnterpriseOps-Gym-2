@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from eops_gym.domains.itsm.data_model import Problem
+from eops_gym.domains.itsm.data_model import Problem, ProblemList
 from eops_gym.domains.itsm.tools._base import ItsmError, ItsmToolsBase
 from eops_gym.environment.toolkit import ToolType, is_tool
 
@@ -289,7 +289,7 @@ class ProblemToolsMixin(ItsmToolsBase):
         original_task: Optional[str] = None,
         created_after: Optional[str] = None,
         created_before: Optional[str] = None,
-    ) -> dict:
+    ) -> ProblemList:
         """List problems, optionally filtered. All filters are ANDed; omitted filters ignored.
 
         Enum filters (status, category, impact, urgency, priority) match case-insensitively.
@@ -359,12 +359,12 @@ class ProblemToolsMixin(ItsmToolsBase):
             if created_before is not None and (problem.created_on or "") > created_before:
                 continue
             out.append(problem)
-        return {"problems": out, "total_count": len(out)}
+        return ProblemList(problems=out, total_count=len(out))
 
     @is_tool(ToolType.READ)
     def get_problems_assigned_to(
         self, assignment_group: Optional[str] = None, assigned_to: Optional[str] = None
-    ) -> dict:
+    ) -> ProblemList:
         """Get problems assigned to a specific user and/or group (ANDed).
 
         Args:
@@ -381,4 +381,4 @@ class ProblemToolsMixin(ItsmToolsBase):
             if assigned_to is not None and problem.assigned_to != assigned_to:
                 continue
             out.append(problem)
-        return {"problems": out, "total_count": len(out)}
+        return ProblemList(problems=out, total_count=len(out))

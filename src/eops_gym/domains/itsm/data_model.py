@@ -355,6 +355,82 @@ class Notification(ItsmRecord):
 
 
 # =============================================================================
+# List/search result wrappers — typed envelopes for the finder tools.
+#
+# These exist so a finder's RETURN annotation carries the full output shape (an array of
+# typed records + a count) instead of an opaque ``dict``. ``_output_schema_for`` then
+# surfaces the inner record fields, which the tool-graph edge inference uses to wire
+# producer->consumer data-flow edges. Field names mirror each finder's historical dict
+# keys EXACTLY (note: notifications use ``count``; everything else uses ``total_count``),
+# so the serialized JSON handed to callers is unchanged.
+# =============================================================================
+
+class ChangeRequestMappingList(BaseModel):
+    change_request_mappings: List[ChangeRequestMapping]
+    total_count: int
+
+
+class ConfigurationItemList(BaseModel):
+    configuration_items: List[ConfigurationItem]
+    total_count: int
+
+
+class UserGroupList(BaseModel):
+    user_groups: List[UserGroup]
+    total_count: int
+
+
+class UserGroupMemberList(BaseModel):
+    group_members: List[UserGroupMember]
+    total_count: int
+
+
+class IncidentAffectedCIList(BaseModel):
+    incident_affected_cis: List[IncidentAffectedCI]
+    total_count: int
+
+
+class IncidentSLAList(BaseModel):
+    incident_slas: List[IncidentSLA]
+    total_count: int
+
+
+class KnowledgeList(BaseModel):
+    knowledges: List[Knowledge]
+    total_count: int
+
+
+class LocationList(BaseModel):
+    locations: List[Location]
+    total_count: int
+
+
+class NotificationList(BaseModel):
+    notifications: List[Notification]
+    count: int
+
+
+class ProblemList(BaseModel):
+    problems: List[Problem]
+    total_count: int
+
+
+class ServiceList(BaseModel):
+    services: List[Service]
+    total_count: int
+
+
+class SLADefinitionList(BaseModel):
+    sla_definitions: List[SLADefinition]
+    total_count: int
+
+
+class UserList(BaseModel):
+    users: List[User]
+    total_count: int
+
+
+# =============================================================================
 # Integrity spec — drives ``ItsmDB.validate_integrity`` (ID format + foreign keys).
 #
 # This is the single, declarative source of truth for cross-record invariants. It is
@@ -393,10 +469,11 @@ _ID_SPEC: Dict[str, Tuple[str, str]] = {
 
 #: Prose columns matched *fuzzily* (content overlap), not exactly, during DB-match — an LLM agent
 #: can't reproduce free text verbatim. Keyed by collection name, like ``_ID_SPEC`` / ``_FK_FIELDS``.
-#: Concise identifiers (``short_description``, ``title``) stay exact: tasks usually pin them.
+#: ``short_description`` is included (LLM agents paraphrase incident titles too); ``title`` stays
+#: exact as a pinned identifier.
 _FREETEXT_FIELDS: Dict[str, List[str]] = {
     "notification": ["subject", "message"],
-    "incident": ["description", "worknotes", "resolution_notes", "close_notes"],
+    "incident": ["short_description", "description", "worknotes", "resolution_notes", "close_notes"],
     "problem": ["problem_statement", "worknotes", "workaround", "fix_notes"],
     "change": ["description", "implementation_plan", "testing_plan", "close_notes"],
     "knowledge": ["body"],

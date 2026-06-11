@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from eops_gym.domains.itsm.data_model import ChangeRequestMapping
+from eops_gym.domains.itsm.data_model import ChangeRequestMapping, ChangeRequestMappingList
 from eops_gym.domains.itsm.tools._base import ItsmError, ItsmToolsBase
 from eops_gym.environment.toolkit import ToolType, is_tool
 
@@ -181,7 +181,7 @@ class ChangeRequestMappingToolsMixin(ItsmToolsBase):
         problem_id: Optional[str] = None,
         created_after: Optional[str] = None,
         created_before: Optional[str] = None,
-    ) -> dict:
+    ) -> ChangeRequestMappingList:
         """List change request mappings, optionally filtered. All filters are ANDed.
 
         Omitting all filters returns every mapping. Results span all organizations.
@@ -213,13 +213,10 @@ class ChangeRequestMappingToolsMixin(ItsmToolsBase):
             if created_before is not None and (m.created_at or "") > created_before:
                 continue
             out.append(m)
-        return {
-            "change_request_mappings": out,
-            "total_count": len(out),
-        }
+        return ChangeRequestMappingList(change_request_mappings=out, total_count=len(out))
 
     @is_tool(ToolType.READ)
-    def find_change_request_mappings_for_incident(self, incident_id: str) -> dict:
+    def find_change_request_mappings_for_incident(self, incident_id: str) -> ChangeRequestMappingList:
         """Retrieve all change request mappings tied to a specific incident.
 
         Args:
@@ -231,13 +228,10 @@ class ChangeRequestMappingToolsMixin(ItsmToolsBase):
         self._require_incident(incident_id)
         out = [m for m in self.db.change_request_mapping.values()
                if m.incident_id == incident_id]
-        return {
-            "change_request_mappings": out,
-            "total_count": len(out),
-        }
+        return ChangeRequestMappingList(change_request_mappings=out, total_count=len(out))
 
     @is_tool(ToolType.READ)
-    def find_change_request_mappings_for_problem(self, problem_id: str) -> dict:
+    def find_change_request_mappings_for_problem(self, problem_id: str) -> ChangeRequestMappingList:
         """Retrieve all change request mappings tied to a specific problem.
 
         Args:
@@ -249,7 +243,4 @@ class ChangeRequestMappingToolsMixin(ItsmToolsBase):
         self._require_problem(problem_id)
         out = [m for m in self.db.change_request_mapping.values()
                if m.problem_id == problem_id]
-        return {
-            "change_request_mappings": out,
-            "total_count": len(out),
-        }
+        return ChangeRequestMappingList(change_request_mappings=out, total_count=len(out))

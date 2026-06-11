@@ -8,7 +8,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import List, Optional
 
-from eops_gym.domains.itsm.data_model import Location
+from eops_gym.domains.itsm.data_model import Location, LocationList
 from eops_gym.domains.itsm.tools._base import ItsmError, ItsmToolsBase
 from eops_gym.environment.toolkit import ToolType, is_tool
 
@@ -207,7 +207,7 @@ class LocationToolsMixin(ItsmToolsBase):
         active: Optional[bool] = None,
         created_after: Optional[str] = None,
         created_before: Optional[str] = None,
-    ) -> dict:
+    ) -> LocationList:
         """List locations with optional filters; without filters, returns all locations.
 
         Text filters (name, city, country) use case-insensitive partial matching. Date
@@ -258,4 +258,4 @@ class LocationToolsMixin(ItsmToolsBase):
                 if before_dt is not None and created > before_dt:
                     continue
             out.append(loc)
-        return {"locations": out, "total_count": len(out)}
+        return LocationList(locations=out, total_count=len(out))

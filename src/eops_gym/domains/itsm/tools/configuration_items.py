@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from eops_gym.domains.itsm.data_model import ConfigurationItem
+from eops_gym.domains.itsm.data_model import ConfigurationItem, ConfigurationItemList
 from eops_gym.domains.itsm.tools._base import ItsmError, ItsmToolsBase
 from eops_gym.environment.toolkit import ToolType, is_tool
 
@@ -238,7 +238,7 @@ class ConfigurationItemToolsMixin(ItsmToolsBase):
         cost: Optional[float] = None,
         created_after: Optional[str] = None,
         created_before: Optional[str] = None,
-    ) -> dict:
+    ) -> ConfigurationItemList:
         """List configuration items with optional filters (all ANDed; omitted filters ignored).
 
         Args:
@@ -275,4 +275,4 @@ class ConfigurationItemToolsMixin(ItsmToolsBase):
                 continue
             out.append(ci)
         out.sort(key=lambda c: c.configuration_item_id, reverse=True)
-        return {"configuration_items": out, "total_count": len(out)}
+        return ConfigurationItemList(configuration_items=out, total_count=len(out))

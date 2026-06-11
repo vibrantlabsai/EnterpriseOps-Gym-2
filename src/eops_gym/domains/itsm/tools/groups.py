@@ -7,7 +7,12 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from eops_gym.domains.itsm.data_model import UserGroup, UserGroupMember
+from eops_gym.domains.itsm.data_model import (
+    UserGroup,
+    UserGroupList,
+    UserGroupMember,
+    UserGroupMemberList,
+)
 from eops_gym.domains.itsm.tools._base import ItsmError, ItsmToolsBase
 from eops_gym.environment.toolkit import ToolType, is_tool
 
@@ -259,7 +264,7 @@ class GroupToolsMixin(ItsmToolsBase):
         type: Optional[str] = None,
         created_after: Optional[str] = None,
         created_before: Optional[str] = None,
-    ) -> dict:
+    ) -> UserGroupList:
         """List user groups, optionally filtered. Results are ordered by created_on descending.
 
         Args:
@@ -290,7 +295,7 @@ class GroupToolsMixin(ItsmToolsBase):
                 continue
             out.append(g)
         out.sort(key=lambda g: (g.created_on or ""), reverse=True)
-        return {"user_groups": [g.model_dump() for g in out], "total_count": len(out)}
+        return UserGroupList(user_groups=out, total_count=len(out))
 
     @is_tool(ToolType.READ)
     def list_group_members(
@@ -300,7 +305,7 @@ class GroupToolsMixin(ItsmToolsBase):
         user_id: Optional[str] = None,
         created_after: Optional[str] = None,
         created_before: Optional[str] = None,
-    ) -> dict:
+    ) -> UserGroupMemberList:
         """List group members, optionally filtered. Results are ordered by created_on descending.
 
         Args:
@@ -328,4 +333,4 @@ class GroupToolsMixin(ItsmToolsBase):
                 continue
             out.append(m)
         out.sort(key=lambda m: (m.created_on or ""), reverse=True)
-        return {"group_members": [m.model_dump() for m in out], "total_count": len(out)}
+        return UserGroupMemberList(group_members=out, total_count=len(out))
