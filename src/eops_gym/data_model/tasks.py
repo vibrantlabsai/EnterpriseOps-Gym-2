@@ -47,6 +47,9 @@ class Scenario(BaseModel):
 
     persona: UserProfile
     task_description: str
+    # Sim-only behavioral script (second person): how to open, progressive disclosure of known_info,
+    # confirmation style, and how to respond to the agent's PROPOSE/ASK cascades — never shown to the agent.
+    simulator_guidance: str = ""
 
 
 class Action(BaseModel):

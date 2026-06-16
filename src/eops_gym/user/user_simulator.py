@@ -39,6 +39,10 @@ Facts you know and can share when the agent asks for them (don't volunteer them 
 <scenario>
 {task_description}
 </scenario>
+
+<how_to_behave>
+{simulator_guidance}
+</how_to_behave>
 """.strip()
 
 
@@ -64,6 +68,7 @@ class UserSimulator:
             personality=self.scenario.persona.personality,
             known_info=known_info,
             task_description=self.scenario.task_description,
+            simulator_guidance=self.scenario.simulator_guidance or "(behave naturally in character)",
         )
 
     def get_init_state(self) -> UserState:
