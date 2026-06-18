@@ -253,14 +253,28 @@ class ProblemToolsMixin(ItsmToolsBase):
             service_offering=service_offering, original_task=original_task,
         )
 
-        # A no-op update (every provided field already equals the stored value) is rejected.
-        changed = {k: v for k, v in active.items() if getattr(problem, k) != v}
-        if not changed:
+        # No-changes-detected idempotency. The reference's check is text/ref-field-sensitive:
+        # enum-typed columns (status/category/impact/urgency/priority) are NEVER flagged as
+        # unchanged -- their stored Enum value never compares equal to the incoming string -- so
+        # any update touching an enum field (even with its current value) counts as a real change
+        # and succeeds. The error is raised only when every supplied field is a *non-enum* field
+        # equal to its stored value; each such field is reported with its current value.
+        no_change = [
+            (k, getattr(problem, k))
+            for k, v in active.items()
+            if k not in _ENUM_FILTERS and getattr(problem, k) == v
+        ]
+        enum_provided = any(k in _ENUM_FILTERS for k in active)
+        real_change = any(
+            k not in _ENUM_FILTERS and getattr(problem, k) != v for k, v in active.items()
+        )
+        if not enum_provided and not real_change and no_change:
+            detail = ", ".join(f"{k} (already '{stored}')" for k, stored in no_change)
             raise ItsmError(
-                "No changes detected for fields: " + ", ".join(active),
+                "No changes detected for fields: " + detail,
                 code="NO_CHANGES_DETECTED",
             )
-        for field, value in changed.items():
+        for field, value in active.items():
             setattr(problem, field, value)
         problem.updated_on = self._now()
         return problem
