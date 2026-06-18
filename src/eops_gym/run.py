@@ -150,6 +150,7 @@ def run_task(
             return spec.get_environment(
                 db_delta=db_delta,
                 acting_user_id=task.acting_user_id,
+                org_id=task.org_id,
             )
 
         env = env_ctor(db_delta=task.initial_state_delta)

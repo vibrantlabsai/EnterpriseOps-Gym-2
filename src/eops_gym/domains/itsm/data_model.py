@@ -9,12 +9,19 @@ Per-table timestamp column names intentionally differ (``incident`` uses created
 most others created_on/updated_on) — preserved verbatim for DB-hash fidelity.
 """
 
+import json
 import re
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from eops_gym.environment.db import DB
+
+#: Shared FK spec, the single source of truth for foreign-key relationships used by both the
+#: integrity check / org slice here AND the TypeScript review tool (task-review reads the same
+#: ``fk_spec.json`` from the gym data dir). Keep it as data — never hand-duplicate the spec.
+_FK_SPEC_PATH = Path(__file__).resolve().parents[3].parent / "data" / "itsm" / "fk_spec.json"
 
 
 class ItsmRecord(BaseModel):
@@ -422,99 +429,12 @@ _COMPOSITE_KEYS: Dict[str, List[Tuple[str, str, str]]] = {
 #: ``role.name`` values (the ``users.role`` special case — roles stay data-driven, not hardcoded).
 #: Denormalized ``*_display`` labels, ``notification.email``, timestamps, etc. are intentionally
 #: absent (they are not foreign keys).
+#: Loaded from the shared ``fk_spec.json`` (the single source of truth — see ``_FK_SPEC_PATH``),
+#: so the gym and the TS review tool can never drift. JSON arrays become the ``(field, target,
+#: kind)`` tuples the integrity check and ``slice_db_to_org`` consume.
 _FK_FIELDS: Dict[str, List[Tuple[str, str, str]]] = {
-    "location": [("org_id", "organization", "pk")],
-    "users": [
-        ("role", "role", "name"),
-        ("org_id", "organization", "pk"),
-        ("location_id", "location", "pk"),
-    ],
-    "user_group": [("manager_id", "users", "pk"), ("org_id", "organization", "pk")],
-    "user_group_member": [
-        ("group_id", "user_group", "pk"),
-        ("user_id", "users", "pk"),
-        ("org_id", "organization", "pk"),
-    ],
-    "service": [("owned_by", "users", "pk"), ("org_id", "organization", "pk")],
-    "service_offering": [
-        ("owned_by", "users", "pk"),
-        ("business_service", "service", "pk"),
-        ("org_id", "organization", "pk"),
-    ],
-    "configuration_item": [
-        ("owner_id", "users", "pk"),
-        ("location_id", "location", "pk"),
-        ("org_id", "organization", "pk"),
-    ],
-    "incident_template": [
-        ("caller_id", "users", "pk"),
-        ("configuration_item", "configuration_item", "pk"),
-        ("service", "service", "pk"),
-        ("service_offering", "service_offering", "pk"),
-        ("org_id", "organization", "pk"),
-    ],
-    "incident": [
-        ("caller_id", "users", "pk"),
-        ("service", "service", "pk"),
-        ("service_offering", "service_offering", "pk"),
-        ("configuration_item", "configuration_item", "pk"),
-        ("assigned_to", "users", "pk"),
-        ("assignment_group", "user_group", "pk"),
-        ("resolved_by", "users", "pk"),
-        ("problem", "problem", "pk"),
-        ("change_request", "change", "pk"),
-        ("caused_by_change", "change", "pk"),
-        ("incident_template", "incident_template", "pk"),
-        ("parent_incident", "incident", "pk"),
-        ("org_id", "organization", "pk"),
-    ],
-    "child_incident": [
-        ("parent_incident", "incident", "pk"),
-        ("child_incident", "incident", "pk"),
-    ],
-    "problem": [
-        ("opened_by", "users", "pk"),
-        ("service", "service", "pk"),
-        ("service_offering", "service_offering", "pk"),
-        ("configuration_item", "configuration_item", "pk"),
-        ("assigned_to", "users", "pk"),
-        ("assignment_group", "user_group", "pk"),
-        ("original_task", "incident", "pk"),
-        ("org_id", "organization", "pk"),
-    ],
-    "change": [
-        ("requested_by", "users", "pk"),
-        ("service", "service", "pk"),
-        ("service_offering", "service_offering", "pk"),
-        ("configuration_item", "configuration_item", "pk"),
-        ("assigned_to", "users", "pk"),
-        ("assignment_group", "user_group", "pk"),
-        ("org_id", "organization", "pk"),
-    ],
-    "change_request_mapping": [
-        ("change_id", "change", "pk"),
-        ("incident_id", "incident", "pk"),
-        ("problem_id", "problem", "pk"),
-        ("org_id", "organization", "pk"),
-    ],
-    "knowledge": [("owner_id", "users", "pk"), ("org_id", "organization", "pk")],
-    "incident_knowledge": [
-        ("incident_id", "incident", "pk"),
-        ("knowledge_id", "knowledge", "pk"),
-        ("org_id", "organization", "pk"),
-    ],
-    "incident_affected_cis": [
-        ("configuration_item", "configuration_item", "pk"),
-        ("incident_id", "incident", "pk"),
-        ("org_id", "organization", "pk"),
-    ],
-    "sla_definition": [("org_id", "organization", "pk")],
-    "incident_sla": [
-        ("incident_id", "incident", "pk"),
-        ("sla_def_id", "sla_definition", "pk"),
-        ("org_id", "organization", "pk"),
-    ],
-    "notification": [("incident_id", "incident", "pk"), ("org_id", "organization", "pk")],
+    coll: [(field, target, kind) for field, target, kind in entries]
+    for coll, entries in json.loads(_FK_SPEC_PATH.read_text(encoding="utf-8")).items()
 }
 
 
