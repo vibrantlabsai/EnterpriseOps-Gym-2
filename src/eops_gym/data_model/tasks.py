@@ -76,6 +76,10 @@ class Task(BaseModel):
     id: str
     scenario: Scenario
     evaluation_criteria: EvaluationCriteria = Field(default_factory=EvaluationCriteria)
+    # The task's single tenant. When set, the env is sliced to this org (single-tenant) so
+    # numbers/names that collide across orgs resolve unambiguously to the in-org record. The
+    # acting user (persona identity) belongs to this org.
+    org_id: Optional[str] = None
     # item 7: collection -> record_id -> {set|create|delete}
     initial_state_delta: Optional[Delta] = None
     # Wall-clock "now" for this scenario (ISO 8601). Drives the env clock for the live run and the

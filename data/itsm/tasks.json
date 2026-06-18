@@ -1,6 +1,7 @@
 [
   {
     "id": "itsm_workload_rebalance_001",
+    "org_id": "ORG_001",
     "scenario": {
       "persona": {
         "identity": {
@@ -51,6 +52,7 @@
   },
   {
     "id": "itsm_resume_on_hold_incident_notify_001",
+    "org_id": "ORG_001",
     "scenario": {
       "persona": {
         "identity": {
@@ -109,6 +111,7 @@
   },
   {
     "id": "itsm_restore_retired_ci_001",
+    "org_id": "ORG_001",
     "scenario": {
       "persona": {
         "identity": {

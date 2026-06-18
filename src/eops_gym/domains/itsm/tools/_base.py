@@ -35,11 +35,16 @@ class ItsmToolsBase(ToolKitBase):
 
     db: ItsmDB
 
-    def __init__(self, db: ItsmDB, acting_user_id: Optional[str] = None) -> None:
+    def __init__(
+        self, db: ItsmDB, acting_user_id: Optional[str] = None, org_id: Optional[str] = None
+    ) -> None:
         super().__init__(db)
         # The authenticated caller (from the task's user context). Used for org scoping;
         # defaults to the first admin in the seed when not provided.
         self.acting_user_id = acting_user_id
+        # The task's org. When set the env is single-tenant (DB sliced to this org), so this is
+        # the authoritative scope; otherwise org is derived from the acting user.
+        self.org_id = org_id
 
     # -- time ---------------------------------------------------------------
     @staticmethod

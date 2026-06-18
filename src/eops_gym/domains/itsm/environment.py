@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Optional
 
 from eops_gym.data_model.tasks import Task
-from eops_gym.domains.itsm.data_model import ItsmDB
+from eops_gym.domains.itsm.data_model import ItsmDB, slice_db_to_org
 from eops_gym.domains.itsm.tools import ItsmTools
 from eops_gym.environment.delta import Delta, apply_delta
 from eops_gym.environment.environment import Environment
@@ -22,17 +22,24 @@ DOMAIN_NAME = "itsm"
 def get_environment(
     db_delta: Optional[Delta | dict] = None,
     acting_user_id: Optional[str] = None,
+    org_id: Optional[str] = None,
 ) -> Environment:
     """Build a fresh ITSM environment: load ``db.json`` and apply the task delta (item 7).
 
     ``acting_user_id`` is the authenticated caller from the task context (used for org
-    scoping in the tools).
+    scoping in the tools). ``org_id`` makes the environment **single-tenant**: when set, the DB
+    is sliced to that org (after the delta is applied) so numbers/names that collide across orgs
+    resolve to the single in-org record. Left ``None``, the env stays multi-org (legacy behaviour).
     """
     db = ItsmDB.load(ITSM_DB_PATH)
     db = apply_delta(db, db_delta)
+    if org_id is not None:
+        db = slice_db_to_org(db, org_id)
     policy = ITSM_POLICY_PATH.read_text(encoding="utf-8") if ITSM_POLICY_PATH.exists() else ""
     return Environment(
-        domain_name=DOMAIN_NAME, policy=policy, tools=ItsmTools(db, acting_user_id=acting_user_id)
+        domain_name=DOMAIN_NAME,
+        policy=policy,
+        tools=ItsmTools(db, acting_user_id=acting_user_id, org_id=org_id),
     )
 
 

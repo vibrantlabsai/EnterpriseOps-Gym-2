@@ -630,3 +630,43 @@ class ItsmDB(DB):
     def _enforce_integrity(self) -> "ItsmDB":
         self.validate_integrity()
         return self
+
+
+def slice_db_to_org(db: "ItsmDB", org_id: str) -> "ItsmDB":
+    """Return a NEW ``ItsmDB`` scoped to a single org (single-tenant view for a task).
+
+    Keep org-agnostic catalog rows (tables whose records have no ``org_id`` field — role,
+    permission, role_permission) plus every row whose ``org_id`` equals ``org_id`` (this also
+    narrows ``organization`` to the one org). Then prune dangling foreign-key references to a
+    fixed point — chiefly ``child_incident``, which has no ``org_id`` of its own but points at two
+    incidents; any mapping whose parent/child fell outside the org is dropped. The result
+    re-validates (the ``model_validator`` re-runs ``validate_integrity``), so the slice is
+    guaranteed referentially consistent. Unambiguous lookups follow: numbers/names that collide
+    across orgs now resolve to the single in-org record.
+    """
+    raw = db.model_dump()
+    # 1. Org filter: org-agnostic rows (no org_id field) stay; org-scoped rows keep iff in-org.
+    for coll, rows in raw.items():
+        raw[coll] = {
+            rid: rec for rid, rec in rows.items()
+            if ("org_id" not in rec) or rec.get("org_id") == org_id
+        }
+    # 2. Prune dangling pk foreign keys to a fixed point (e.g. child_incident -> a dropped incident).
+    changed = True
+    while changed:
+        changed = False
+        for coll, fks in _FK_FIELDS.items():
+            kept = {}
+            for rid, rec in raw[coll].items():
+                dangling = any(
+                    kind == "pk"
+                    and rec.get(field) is not None
+                    and rec.get(field) not in raw[target]
+                    for field, target, kind in fks
+                )
+                if dangling:
+                    changed = True
+                else:
+                    kept[rid] = rec
+            raw[coll] = kept
+    return ItsmDB.model_validate(raw)
