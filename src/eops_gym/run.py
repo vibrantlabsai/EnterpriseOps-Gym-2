@@ -24,6 +24,7 @@ from eops_gym.data_model.tasks import Task
 from eops_gym.domains.itsm import environment as itsm_environment
 from eops_gym.environment.environment import Environment
 from eops_gym.evaluator.evaluator import RewardInfo, evaluate_task
+from eops_gym.evaluator.text_match_strategy import TextMatchConfig
 from eops_gym.orchestrator.orchestrator import Orchestrator
 from eops_gym.utils.clock import DEFAULT_NOW, reset_now, set_now
 from eops_gym.utils.io_utils import dump_file
@@ -129,6 +130,7 @@ def run_task(
     max_steps: int = 12,
     seed: Optional[int] = None,
     trial: int = 0,
+    db_text_match: Optional[TextMatchConfig] = None,
 ) -> TaskResult:
     """Run and evaluate a single task trial end to end.
 
@@ -163,6 +165,7 @@ def run_task(
             trajectory=run.trajectory,
             final_env=env,
             nl_llm=judge_llm,
+            db_text_match=db_text_match,
         )
         return TaskResult(
             task_id=task.id,
@@ -188,6 +191,7 @@ def run_domain(
     k: int = 1,
     seed: Optional[int] = None,
     on_result: Optional[Callable[[TaskResult], None]] = None,
+    db_text_match: Optional[TextMatchConfig] = None,
 ) -> RunResults:
     """Run and evaluate a set of tasks for a domain, ``k`` trials each.
 
@@ -216,6 +220,7 @@ def run_domain(
                     max_steps=max_steps,
                     seed=trial_seed,
                     trial=trial,
+                    db_text_match=db_text_match,
                 )
             except Exception as e:  # noqa: BLE001 - one trial's failure shouldn't abort the batch
                 result = TaskResult(

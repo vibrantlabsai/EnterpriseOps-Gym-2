@@ -1,10 +1,16 @@
-"""Fuzzy free-text DB-match: structured fields exact, prose columns by content overlap."""
+"""Free-text DB-match: structured fields exact, prose columns per the configured strategy
+(exact | fuzzy | llm). Structural compare stays exact regardless of strategy."""
 
 from __future__ import annotations
 
+import json
+
+from eops_gym.data_model.message import AssistantMessage
 from eops_gym.domains.itsm.data_model import Notification
 from eops_gym.domains.itsm.environment import get_environment
+import eops_gym.evaluator.text_match_strategy as _tms
 from eops_gym.evaluator.evaluator_env import compare_dbs
+from eops_gym.evaluator.text_match_strategy import TextMatchConfig
 from eops_gym.utils.text_match import fuzzy_text_match, text_overlap
 
 
@@ -62,6 +68,59 @@ def test_compare_dbs_extra_or_missing_row_fails():
     base = get_environment().tools.db                 # no NOTIF_900
     matched, mismatches = compare_dbs(gold, base)
     assert not matched and any("missing" in m for m in mismatches)
+
+
+def _stub_judge(monkeypatch, equivalent: bool):
+    """Patch the batched judge's ``generate`` to mark every pair ``equivalent``."""
+    def fake_generate(model=None, messages=None, **kwargs):
+        # Echo back a verdict per pair the judge was asked about.
+        pairs = json.loads((messages[-1].content or "").split("pairs:\n", 1)[1])
+        results = [{"index": p["index"], "equivalent": equivalent} for p in pairs]
+        return AssistantMessage(content=json.dumps({"results": results}))
+    monkeypatch.setattr(_tms, "generate", fake_generate)
+
+
+def test_llm_strategy_semantic_match(monkeypatch):
+    # Lexically-divergent prose the fuzzy matcher would REJECT, but the semantic judge accepts.
+    gold = _db_with_notification(subject="Server outage in datacenter A has been resolved")
+    pred = _db_with_notification(subject="Good news — the datacenter A machines are back online")
+    cfg = TextMatchConfig(strategy="llm", llm="stub")
+    assert not fuzzy_text_match(gold.notification["NOTIF_900"].subject,
+                                pred.notification["NOTIF_900"].subject)  # fuzzy would fail
+    _stub_judge(monkeypatch, equivalent=True)
+    assert compare_dbs(gold, pred, cfg=cfg)[0]                          # judge says equivalent
+    _stub_judge(monkeypatch, equivalent=False)
+    matched, mismatches = compare_dbs(gold, pred, cfg=cfg)
+    assert not matched and any("judge" in m for m in mismatches)        # judge says not
+
+
+def test_llm_strategy_structural_still_exact(monkeypatch):
+    # Even with the judge approving all prose, a structural field mismatch still fails.
+    _stub_judge(monkeypatch, equivalent=True)
+    gold = _db_with_notification()
+    matched, _ = compare_dbs(gold, _db_with_notification(status="sent"), cfg=TextMatchConfig(strategy="llm", llm="stub"))
+    assert not matched
+
+
+def test_llm_strategy_empty_pred_fails_without_judging(monkeypatch):
+    # gold has prose, pred is empty -> resolved deterministically (no judge call needed).
+    called = {"n": 0}
+    def fake_generate(*a, **k):
+        called["n"] += 1
+        return AssistantMessage(content='{"results":[]}')
+    monkeypatch.setattr(_tms, "generate", fake_generate)
+    # baseline = pred's NOTIF_900 row, so only the gold's changed subject is considered; gold has
+    # prose, pred is empty -> resolved deterministically, no pair reaches the batched judge.
+    base = _db_with_notification(subject="", message="")
+    gold = _db_with_notification(subject="Outage resolved", message="")
+    matched, _ = compare_dbs(gold, base, baseline_db=base, cfg=TextMatchConfig(strategy="llm", llm="stub"))
+    assert not matched and called["n"] == 0
+
+
+def test_exact_strategy_rejects_paraphrase():
+    gold = _db_with_notification()
+    pred = _db_with_notification(subject="Update: work on INC0000003 has resumed now")
+    assert not compare_dbs(gold, pred, cfg=TextMatchConfig(strategy="exact"))[0]
 
 
 def test_freetext_unchanged_by_gold_is_ignored():

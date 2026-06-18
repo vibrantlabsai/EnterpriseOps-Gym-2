@@ -15,7 +15,8 @@ from eops_gym.data_model.message import Message, ToolCall
 from eops_gym.data_model.tasks import Task
 from eops_gym.environment.db import DB
 from eops_gym.environment.environment import Environment
-from eops_gym.utils.text_match import DB_FUZZY_THRESHOLD, fuzzy_text_match
+from eops_gym.evaluator.text_match_strategy import TextMatchConfig, judge_free_text
+from eops_gym.utils.text_match import fuzzy_text_match
 
 
 class DBCheck(BaseModel):
@@ -69,25 +70,46 @@ def tool_calls_from_trajectory(trajectory: list[Message]) -> list[ToolCall]:
 
 
 def _compare_record(
-    gold: dict, pred: dict, freetext: list[str], baseline: dict, threshold: float
-) -> Optional[str]:
-    """Compare two record dicts; return the first divergence (or None if they match).
+    prefix: str,
+    gold: dict,
+    pred: dict,
+    freetext: list[str],
+    baseline: dict,
+    cfg: TextMatchConfig,
+    strategy: str,
+    mismatches: list[str],
+    pending: list[dict],
+) -> None:
+    """Compare two record dicts; append divergences to ``mismatches``.
 
-    Non-free-text fields must be equal. A free-text field is only checked — and then by content
-    overlap, not exact — when the gold actually *changed* it from ``baseline`` (the pre-action
-    seed+delta value). If the task's gold left a prose field untouched, the agent's value there is
-    unconstrained (it may add a worknote the task never asked for).
+    Non-free-text fields must be equal. A free-text field is only checked when the gold actually
+    *changed* it from ``baseline`` (the pre-action seed+delta value); if the gold left a prose
+    field untouched, the agent's value there is unconstrained. How a changed free-text field is
+    judged depends on ``strategy``: ``exact`` (==), ``fuzzy`` (content overlap), or ``llm`` —
+    which defers to a batched semantic judge by appending ``{field, gold, pred}`` to ``pending``
+    (decided once for the whole DB, so empty/None cases are resolved here to save judge tokens).
     """
     for field in sorted(set(gold) | set(pred)):
         gv, pv = gold.get(field), pred.get(field)
         if field in freetext:
             if gv == baseline.get(field):
                 continue  # gold didn't set this prose field; don't constrain the agent
-            if not fuzzy_text_match(gv, pv, threshold):
-                return f"{field}: {gv!r} !~ {pv!r}"
+            if strategy == "exact":
+                if gv != pv:
+                    mismatches.append(f"{prefix} {field}: {gv!r} != {pv!r}")
+            elif strategy == "llm":
+                gold_has = bool(gv and str(gv).strip())
+                pred_has = bool(pv and str(pv).strip())
+                if not gold_has:
+                    continue  # no text requirement
+                if not pred_has:
+                    mismatches.append(f"{prefix} {field}: {gv!r} !~ '' (empty)")
+                else:
+                    pending.append({"key": f"{prefix} {field}", "field": field, "gold": gv, "pred": pv})
+            elif not fuzzy_text_match(gv, pv, cfg.threshold):
+                mismatches.append(f"{prefix} {field}: {gv!r} !~ {pv!r}")
         elif gv != pv:
-            return f"{field}: {gv!r} != {pv!r}"
-    return None
+            mismatches.append(f"{prefix} {field}: {gv!r} != {pv!r}")
 
 
 def _dump(rec):
@@ -98,16 +120,21 @@ def compare_dbs(
     gold_db: DB,
     pred_db: DB,
     baseline_db: Optional[DB] = None,
-    threshold: float = DB_FUZZY_THRESHOLD,
+    cfg: Optional[TextMatchConfig] = None,
 ) -> tuple[bool, list[str]]:
-    """Record-by-record DB comparison: structured fields exact, free-text fields fuzzy.
+    """Record-by-record DB comparison: structured fields exact, free-text fields per ``cfg``.
 
     Collections must have identical record-id sets (no missing / no extra rows). ``baseline_db``
     (the seed+delta DB before the gold actions) lets free-text fields the gold never changed be
-    ignored. Returns ``(matched, mismatches)`` where ``mismatches`` lists the first divergences.
+    ignored. ``cfg`` (a ``TextMatchConfig``, default ``llm`` → ``fuzzy`` without a judge model)
+    selects the free-text comparison; under ``llm`` all changed prose pairs are judged in one
+    batched call after the structural walk. Returns ``(matched, mismatches)``.
     """
+    cfg = cfg or TextMatchConfig()
+    strategy = cfg.effective_strategy()
     freetext = gold_db.freetext_fields()
     mismatches: list[str] = []
+    pending: list[dict] = []  # llm strategy: free-text pairs to judge in one batch
     for coll in type(gold_db).model_fields:
         gold_coll, pred_coll = getattr(gold_db, coll), getattr(pred_db, coll)
         if not isinstance(gold_coll, dict):
@@ -125,8 +152,15 @@ def compare_dbs(
         base_coll = getattr(baseline_db, coll, {}) if baseline_db is not None else {}
         for rid in sorted(gold_ids):
             base = _dump(base_coll[rid]) if rid in base_coll else {}
-            if reason := _compare_record(_dump(gold_coll[rid]), _dump(pred_coll[rid]), ft, base, threshold):
-                mismatches.append(f"{coll}/{rid} {reason}")
+            _compare_record(
+                f"{coll}/{rid}", _dump(gold_coll[rid]), _dump(pred_coll[rid]),
+                ft, base, cfg, strategy, mismatches, pending,
+            )
+    if pending:
+        verdicts = judge_free_text(pending, cfg.llm, cfg.llm_args)  # type: ignore[arg-type]
+        for pair, ok in zip(pending, verdicts):
+            if not ok:
+                mismatches.append(f"{pair['key']}: {pair['gold']!r} !≈ {pair['pred']!r} (judge)")
     return (not mismatches), mismatches
 
 
@@ -135,11 +169,12 @@ def calculate_db_reward(
     task: Task,
     final_env: Optional[Environment] = None,
     agent_tool_calls: Optional[list[ToolCall]] = None,
+    text_match: Optional[TextMatchConfig] = None,
 ) -> DBCheck:
     gold_env = _build_gold_env(environment_constructor, task)
     pred_env = _predicted_env(environment_constructor, task, final_env, agent_tool_calls)
     # Baseline = seed+delta before any gold action, so free-text fields the gold never changed
     # don't constrain the agent.
     baseline_db = environment_constructor(db_delta=task.initial_state_delta).tools.db
-    match, mismatches = compare_dbs(gold_env.tools.db, pred_env.tools.db, baseline_db)
+    match, mismatches = compare_dbs(gold_env.tools.db, pred_env.tools.db, baseline_db, text_match)
     return DBCheck(db_match=match, reward=1.0 if match else 0.0, mismatches=mismatches[:20])

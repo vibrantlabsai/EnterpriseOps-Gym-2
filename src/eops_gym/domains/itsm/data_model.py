@@ -393,12 +393,12 @@ _ID_SPEC: Dict[str, Tuple[str, str]] = {
 
 #: Prose columns matched *fuzzily* (content overlap), not exactly, during DB-match — an LLM agent
 #: can't reproduce free text verbatim. Keyed by collection name, like ``_ID_SPEC`` / ``_FK_FIELDS``.
-#: Concise identifiers (``short_description``, ``title``) stay exact: tasks usually pin them.
+#: ``short_description`` is prose the agent paraphrases, so it is matched fuzzily too. ``title`` stays exact.
 _FREETEXT_FIELDS: Dict[str, List[str]] = {
     "notification": ["subject", "message"],
-    "incident": ["description", "worknotes", "resolution_notes", "close_notes"],
-    "problem": ["problem_statement", "worknotes", "workaround", "fix_notes"],
-    "change": ["description", "implementation_plan", "testing_plan", "close_notes"],
+    "incident": ["short_description", "description", "worknotes", "resolution_notes", "close_notes"],
+    "problem": ["short_description", "problem_statement", "worknotes", "workaround", "fix_notes"],
+    "change": ["short_description", "description", "implementation_plan", "testing_plan", "close_notes"],
     "knowledge": ["body"],
     "service": ["description"],
     "service_offering": ["description"],
