@@ -77,8 +77,10 @@ def test_toolkit_collects_and_filters_tools():
 def test_clock_default_set_reset():
     reset_now()
     assert get_now() == DEFAULT_NOW
+    # An ISO "T"-separated current_time is canonicalised to the seed format ("YYYY-MM-DD HH:MM:SS")
+    # so freshly stamped timestamps are byte-identical to seed rows.
     set_now("2030-01-02T03:04:05")
-    assert get_now() == "2030-01-02T03:04:05"
+    assert get_now() == "2030-01-02 03:04:05"
     reset_now()
     assert get_now() == DEFAULT_NOW
 

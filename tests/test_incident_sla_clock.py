@@ -18,21 +18,23 @@ def test_link_new_incident_sla_autostamps_start_time_from_clock():
     try:
         tools = _tools("2025-03-04T09:00:00")
         rec = tools.link_new_incident_sla(incident_id="INC_004", sla_def_id="SLA_001")
-        assert rec.start_time == "2025-03-04T09:00:00"
-        assert rec.created_on == "2025-03-04T09:00:00"
-        assert rec.updated_on == "2025-03-04T09:00:00"
+        # Auto-stamped (clock-derived) times are canonicalised to the seed format ("YYYY-MM-DD HH:MM:SS").
+        assert rec.start_time == "2025-03-04 09:00:00"
+        assert rec.created_on == "2025-03-04 09:00:00"
+        assert rec.updated_on == "2025-03-04 09:00:00"
     finally:
         reset_now()
 
 
 def test_link_new_incident_sla_honours_explicit_start_time():
-    """Back-compat: an explicit start_time is still stored verbatim (e.g. a backdated SLA)."""
+    """Back-compat: an explicit start_time is still stored verbatim (e.g. a backdated SLA); only
+    clock-derived stamps (created_on) are canonicalised to the seed format."""
     try:
         tools = _tools("2025-03-04T09:00:00")
         rec = tools.link_new_incident_sla(
             incident_id="INC_004", sla_def_id="SLA_001", start_time="2025-01-01T00:00:00"
         )
         assert rec.start_time == "2025-01-01T00:00:00"
-        assert rec.created_on == "2025-03-04T09:00:00"
+        assert rec.created_on == "2025-03-04 09:00:00"
     finally:
         reset_now()
