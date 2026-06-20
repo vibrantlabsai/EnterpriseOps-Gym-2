@@ -1,5 +1,6 @@
 """ITSM environment + task loader factory."""
 
+import os
 from pathlib import Path
 from typing import Iterable, Optional
 
@@ -11,10 +12,19 @@ from eops_gym.environment.environment import Environment
 from eops_gym.utils.io_utils import load_file
 
 _DATA_DIR = Path(__file__).resolve().parents[3].parent / "data" / "itsm"
-ITSM_DB_PATH = _DATA_DIR / "db.json"
+#: Default seed file. The data dir holds multiple seeds (e.g. ``msp_db.json``, ``single_tenant_db.json``);
+#: a run selects one via the ``EOPS_ITSM_DB`` env var (filename), so the DB is chosen at run time rather
+#: than by editing code. ``ITSM_DB_PATH`` is the default-file path (used by tests / as the fallback).
+_DEFAULT_DB_FILE = "msp_db.json"
+ITSM_DB_PATH = _DATA_DIR / _DEFAULT_DB_FILE
 ITSM_POLICY_PATH = _DATA_DIR / "policy.md"
 ITSM_TASKS_PATH = _DATA_DIR / "tasks.json"
 ITSM_TASKS_DIR = _DATA_DIR / "tasks"
+
+
+def _itsm_db_path() -> Path:
+    """Resolve the seed db path; ``EOPS_ITSM_DB`` (a filename in the data dir) selects the seed."""
+    return _DATA_DIR / os.environ.get("EOPS_ITSM_DB", _DEFAULT_DB_FILE)
 
 DOMAIN_NAME = "itsm"
 
@@ -33,7 +43,7 @@ def get_environment(
     delta) so numbers/names that collide *outside* the scope resolve unambiguously. ``org_id`` is the
     legacy single-org alias (treated as a 1-element scope). Both ``None`` ⇒ no slice (multi-org).
     """
-    db = ItsmDB.load(ITSM_DB_PATH)
+    db = ItsmDB.load(_itsm_db_path())
     db = apply_delta(db, db_delta)
     scope = set(org_ids) if org_ids is not None else ({org_id} if org_id is not None else None)
     if scope is not None:
