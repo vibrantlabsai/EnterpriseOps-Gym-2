@@ -68,16 +68,31 @@ Return one entry per input pair, keyed by its index.
 """.strip()
 
 
+class FreeTextVerdict(BaseModel):
+    """One free-text field's semantic-equivalence verdict from the LLM judge, WITH the judge's
+    reasoning — so a caller can see WHY a prose field was (not) accepted, not just the boolean.
+    ``key`` is the ``collection/record_id field`` locator the structural walk produced."""
+
+    key: str
+    field: str
+    gold: Optional[str] = None
+    pred: Optional[str] = None
+    equivalent: bool
+    reasoning: Optional[str] = None
+
+
 def judge_free_text(
     pairs: list[dict],
     llm: str,
     llm_args: Optional[dict] = None,
-) -> list[bool]:
+) -> list[FreeTextVerdict]:
     """Batch-judge semantic equivalence of ``(field, gold, pred)`` pairs in one ``generate`` call.
 
-    ``pairs`` items: ``{"field": str, "gold": str, "pred": str}``. Returns a bool per pair (by
-    position); unparseable / missing verdicts default to ``False`` (conservative — a real failure
-    is never silently passed).
+    ``pairs`` items: ``{"key": str, "field": str, "gold": str, "pred": str}``. Returns one
+    :class:`FreeTextVerdict` per pair (by position), carrying the judge's ``equivalent`` verdict and
+    its ``reasoning``; unparseable / missing verdicts default to ``equivalent=False`` (conservative —
+    a real failure is never silently passed) with a ``reasoning`` that names the parse failure, so a
+    judge that returns junk is visibly distinguishable from a genuine non-equivalence.
     """
     if not pairs:
         return []
@@ -96,24 +111,39 @@ def judge_free_text(
         ],
         **llm_args,
     )
-    return _parse_judge_response(response.content, len(pairs))
+    return _parse_judge_response(response.content, pairs)
 
 
-def _parse_judge_response(content: Optional[str], n: int) -> list[bool]:
-    verdicts = [False] * n
+def _as_text(value: object) -> Optional[str]:
+    return None if value is None else str(value)
+
+
+def _parse_judge_response(content: Optional[str], pairs: list[dict]) -> list[FreeTextVerdict]:
+    def verdict(i: int, equivalent: bool, reasoning: Optional[str]) -> FreeTextVerdict:
+        p = pairs[i]
+        return FreeTextVerdict(
+            key=str(p.get("key", p["field"])), field=str(p["field"]),
+            gold=_as_text(p.get("gold")), pred=_as_text(p.get("pred")),
+            equivalent=equivalent, reasoning=reasoning,
+        )
+
+    # Conservative default: every pair non-equivalent until the judge says otherwise.
+    verdicts = [verdict(i, False, None) for i in range(len(pairs))]
     try:
         data = json.loads(_extract_json(content or ""))
         results = data["results"]
     except (json.JSONDecodeError, KeyError, TypeError) as e:
         logger.warning(f"could not parse free-text judge response: {e}")
+        for v in verdicts:
+            v.reasoning = "unparseable judge output"
         return verdicts
     for r in results:
         try:
             idx = int(r["index"])
         except (KeyError, TypeError, ValueError):
             continue
-        if 0 <= idx < n:
-            verdicts[idx] = bool(r.get("equivalent", False))
+        if 0 <= idx < len(pairs):
+            verdicts[idx] = verdict(idx, bool(r.get("equivalent", False)), r.get("reasoning"))
     return verdicts
 
 

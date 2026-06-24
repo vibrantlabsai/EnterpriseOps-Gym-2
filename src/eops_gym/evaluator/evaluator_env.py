@@ -15,7 +15,7 @@ from eops_gym.data_model.message import Message, ToolCall
 from eops_gym.data_model.tasks import Task
 from eops_gym.environment.db import DB
 from eops_gym.environment.environment import Environment
-from eops_gym.evaluator.text_match_strategy import TextMatchConfig, judge_free_text
+from eops_gym.evaluator.text_match_strategy import FreeTextVerdict, TextMatchConfig, judge_free_text
 from eops_gym.utils.text_match import fuzzy_text_match
 
 
@@ -23,6 +23,9 @@ class DBCheck(BaseModel):
     db_match: bool
     reward: float
     mismatches: list[str] = Field(default_factory=list)  # first divergences, for debugging
+    # Per-field semantic-equivalence verdicts (with reasoning) for every free-text pair the LLM
+    # judge decided — so a caller can see WHY a prose field was (not) accepted, not just db_match.
+    text_judgments: list[FreeTextVerdict] = Field(default_factory=list)
 
 
 def _build_gold_env(environment_constructor: Callable[..., Environment], task: Task) -> Environment:
@@ -121,6 +124,7 @@ def compare_dbs(
     pred_db: DB,
     baseline_db: Optional[DB] = None,
     cfg: Optional[TextMatchConfig] = None,
+    text_verdicts_out: Optional[list[FreeTextVerdict]] = None,
 ) -> tuple[bool, list[str]]:
     """Record-by-record DB comparison: structured fields exact, free-text fields per ``cfg``.
 
@@ -128,7 +132,9 @@ def compare_dbs(
     (the seed+delta DB before the gold actions) lets free-text fields the gold never changed be
     ignored. ``cfg`` (a ``TextMatchConfig``, default ``llm`` → ``fuzzy`` without a judge model)
     selects the free-text comparison; under ``llm`` all changed prose pairs are judged in one
-    batched call after the structural walk. Returns ``(matched, mismatches)``.
+    batched call after the structural walk. Returns ``(matched, mismatches)``. When
+    ``text_verdicts_out`` is provided, the per-pair :class:`FreeTextVerdict`s from the judge
+    (equivalent + reasoning) are appended to it for callers that want the judge's rationale.
     """
     cfg = cfg or TextMatchConfig()
     strategy = cfg.effective_strategy()
@@ -158,8 +164,10 @@ def compare_dbs(
             )
     if pending:
         verdicts = judge_free_text(pending, cfg.llm, cfg.llm_args)  # type: ignore[arg-type]
-        for pair, ok in zip(pending, verdicts):
-            if not ok:
+        if text_verdicts_out is not None:
+            text_verdicts_out.extend(verdicts)
+        for pair, v in zip(pending, verdicts):
+            if not v.equivalent:
                 mismatches.append(f"{pair['key']}: {pair['gold']!r} !≈ {pair['pred']!r} (judge)")
     return (not mismatches), mismatches
 
@@ -176,5 +184,12 @@ def calculate_db_reward(
     # Baseline = seed+delta before any gold action, so free-text fields the gold never changed
     # don't constrain the agent.
     baseline_db = environment_constructor(db_delta=task.initial_state_delta).tools.db
-    match, mismatches = compare_dbs(gold_env.tools.db, pred_env.tools.db, baseline_db, text_match)
-    return DBCheck(db_match=match, reward=1.0 if match else 0.0, mismatches=mismatches[:20])
+    text_verdicts: list[FreeTextVerdict] = []
+    match, mismatches = compare_dbs(
+        gold_env.tools.db, pred_env.tools.db, baseline_db, text_match,
+        text_verdicts_out=text_verdicts,
+    )
+    return DBCheck(
+        db_match=match, reward=1.0 if match else 0.0,
+        mismatches=mismatches[:20], text_judgments=text_verdicts,
+    )
