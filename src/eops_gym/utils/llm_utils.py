@@ -70,6 +70,12 @@ def generate(
     if tools:
         completion_kwargs["tools"] = tools
 
+    # Opus 4.8 deprecates the sampling params (temperature/top_p) and the Anthropic API rejects
+    # them; litellm's model map doesn't yet know to drop them for this id, so strip them here.
+    if "opus-4-8" in model:
+        completion_kwargs.pop("temperature", None)
+        completion_kwargs.pop("top_p", None)
+
     response = litellm.completion(**completion_kwargs)
     choice = response.choices[0].message
 
